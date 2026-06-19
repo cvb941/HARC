@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "revenuecat_metrics"
 NAME = "RevenueCat Metrics"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 API_BASE_URL = "https://api.revenuecat.com/v2"
 API_TIMEOUT_SECONDS = 30
