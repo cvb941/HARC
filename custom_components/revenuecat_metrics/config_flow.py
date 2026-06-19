@@ -52,7 +52,7 @@ class RevenueCatMetricsConfigFlow(
         config_entry: config_entries.ConfigEntry,
     ) -> RevenueCatMetricsOptionsFlow:
         """Create the options flow."""
-        return RevenueCatMetricsOptionsFlow(config_entry)
+        return RevenueCatMetricsOptionsFlow()
 
     async def async_step_user(
         self,
@@ -121,9 +121,6 @@ class RevenueCatMetricsConfigFlow(
 
 class RevenueCatMetricsOptionsFlow(config_entries.OptionsFlow):
     """Handle RevenueCat Metrics options."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
 
     async def async_step_init(
         self,
