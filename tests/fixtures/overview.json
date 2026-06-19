@@ -1,0 +1,29 @@
+{
+  "object": "overview_metrics",
+  "metrics": [
+    {
+      "object": "overview_metric",
+      "id": "active_subscriptions",
+      "name": "Active Subscriptions",
+      "description": "Active paid subscriptions",
+      "unit": "",
+      "period": "P0D",
+      "value": 99,
+      "last_updated_at": 1781863200000,
+      "last_updated_at_iso8601": "2026-06-19 08:00:00.000000+00:00"
+    },
+    {
+      "object": "overview_metric",
+      "id": "mrr",
+      "name": "MRR",
+      "description": "Monthly recurring revenue",
+      "unit": "$",
+      "period": "P0D",
+      "value": 1250.0,
+      "last_updated_at": 1781863200000,
+      "last_updated_at_iso8601": "2026-06-19 08:00:00.000000+00:00"
+    }
+  ],
+  "currency": "EUR"
+}
+

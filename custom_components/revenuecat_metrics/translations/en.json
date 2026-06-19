@@ -1,0 +1,49 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This RevenueCat project is already configured.",
+      "reauth_successful": "RevenueCat authentication was updated successfully."
+    },
+    "error": {
+      "cannot_connect": "Could not connect to RevenueCat. Check the project ID, key permissions, and RevenueCat API status.",
+      "invalid_auth": "RevenueCat rejected the API key or the key is not authorized for this project."
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "RevenueCat API v2 secret key"
+        },
+        "description": "Enter a new RevenueCat API v2 secret key.",
+        "title": "Reauthenticate RevenueCat Metrics"
+      },
+      "user": {
+        "data": {
+          "api_key": "RevenueCat API v2 secret key",
+          "currency": "Currency",
+          "project_id": "Project ID",
+          "revenue_type": "Revenue type",
+          "update_interval": "Update interval in minutes"
+        },
+        "description": "Use a RevenueCat API v2 secret key with Charts & Metrics read permissions.",
+        "title": "RevenueCat Metrics"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "interval_too_low": "The update interval must be at least 15 minutes."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "currency": "Currency",
+          "enabled_charts": "Enabled charts",
+          "revenue_type": "Revenue type",
+          "update_interval": "Update interval in minutes"
+        },
+        "title": "RevenueCat Metrics options"
+      }
+    }
+  }
+}
+

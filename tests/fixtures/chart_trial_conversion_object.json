@@ -1,0 +1,33 @@
+{
+  "object": "chart_data",
+  "category": "conversion",
+  "display_type": "line",
+  "display_name": "Trial Conversion Rate",
+  "description": "Trial conversions",
+  "documentation_link": null,
+  "last_computed_at": 1781863200000,
+  "start_date": 1779235200000,
+  "end_date": 1781913600000,
+  "yaxis_currency": "EUR",
+  "filtering_allowed": true,
+  "segmenting_allowed": true,
+  "resolution": "day",
+  "values": [
+    {
+      "period": "2026-06-17",
+      "trial_conversion_rate": 40.5
+    },
+    {
+      "period": "2026-06-18",
+      "trial_conversion_rate": 42.25
+    }
+  ],
+  "summary": {},
+  "yaxis": "%",
+  "segments": null,
+  "segments_limit": null,
+  "measures": null,
+  "user_selectors": {},
+  "unsupported_params": null
+}
+

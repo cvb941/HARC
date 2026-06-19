@@ -1,0 +1,9 @@
+{
+  "object": "revenue_metric",
+  "start_date": "2026-05-23",
+  "end_date": "2026-06-19",
+  "currency": "EUR",
+  "value": 3456.78,
+  "revenue_type": "proceeds"
+}
+

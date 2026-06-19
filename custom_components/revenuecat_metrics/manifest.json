@@ -1,0 +1,13 @@
+{
+  "codeowners": ["@cvb941"],
+  "config_flow": true,
+  "documentation": "https://github.com/cvb941/HARC",
+  "domain": "revenuecat_metrics",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/cvb941/HARC/issues",
+  "name": "RevenueCat Metrics",
+  "requirements": [],
+  "version": "0.1.0"
+}
+
