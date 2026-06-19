@@ -1,6 +1,12 @@
-# RevenueCat Metrics for Home Assistant
+# HARC
 
-`revenuecat_metrics` is a Home Assistant custom integration that exposes RevenueCat API v2 Charts and Overview metrics as sensor entities. It is built for HACS-style installation and intentionally has no dependency on AWTRIX or any display-specific integration.
+Home Assistant RevenueCat metrics custom integration.
+
+`revenuecat_metrics` exposes RevenueCat API v2 Charts and Overview metrics as Home Assistant sensor entities. The repository is named HARC to avoid conflicting with the separate HAHA project. It is built for HACS-style installation and intentionally has no dependency on AWTRIX or any display-specific integration.
+
+## Status
+
+This is an early custom integration. RevenueCat's Charts API supports chart-specific response shapes, so the parser is intentionally conservative and may need updates if RevenueCat changes chart payloads.
 
 ## Features
 
@@ -31,18 +37,25 @@ Do not put the secret key in source files, README examples, dashboards, or brows
 
 ### HACS custom repository
 
-1. Add this repository in HACS as an Integration custom repository.
-2. Install `RevenueCat Metrics`.
-3. Restart Home Assistant.
-4. Go to Settings > Devices & services > Add integration.
-5. Search for `RevenueCat Metrics`.
+1. Add `cvb941/HARC` in HACS as a custom repository.
+2. Select category `Integration`.
+3. Install `RevenueCat Metrics`.
+4. Restart Home Assistant.
+5. Go to Settings > Devices & services > Add integration.
+6. Search for `RevenueCat Metrics`.
 
 ### Manual
 
-Copy this directory into Home Assistant:
+Copy the integration directory into Home Assistant:
 
 ```text
 /config/custom_components/revenuecat_metrics
+```
+
+The source path in this repository is:
+
+```text
+custom_components/revenuecat_metrics
 ```
 
 Restart Home Assistant, then add the integration from Settings > Devices & services.
@@ -86,6 +99,7 @@ This integration only exposes sensors. To show MRR on AWTRIX, use a Home Assista
 
 ```yaml
 alias: AWTRIX RevenueCat MRR
+mode: single
 triggers:
   - trigger: state
     entity_id: sensor.revenuecat_mrr
@@ -117,4 +131,3 @@ Run a basic syntax check:
 ```bash
 python3 -m compileall custom_components tests
 ```
-
