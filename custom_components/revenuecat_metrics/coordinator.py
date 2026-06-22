@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -18,21 +18,28 @@ from .api import (
     RevenueCatSensorMetric,
     RevenueCatTransientError,
     parse_chart_metric,
+    parse_mrr_daily_history,
     parse_overview_metrics,
     parse_revenue_metric,
+    unavailable_mrr_daily_history,
 )
 from .const import (
     CONF_CURRENCY,
     CONF_ENABLED_CHARTS,
+    CONF_HISTORY_DAYS,
     CONF_PROJECT_ID,
     CONF_REVENUE_TYPE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_CURRENCY,
     DEFAULT_ENABLED_CHARTS,
+    DEFAULT_HISTORY_DAYS,
     DEFAULT_REVENUE_TYPE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DOMAIN,
+    MAX_HISTORY_DAYS,
+    MIN_HISTORY_DAYS,
     MIN_UPDATE_INTERVAL_MINUTES,
+    MRR_DAILY_HISTORY_SENSOR_KEY,
     SUPPORTED_CHARTS,
 )
 
@@ -102,6 +109,19 @@ class RevenueCatMetricsCoordinator(
         )
         return tuple(chart for chart in charts if chart in SUPPORTED_CHARTS)
 
+    @property
+    def history_days(self) -> int:
+        """Return the selected daily history window."""
+        days = self.config_entry.options.get(
+            CONF_HISTORY_DAYS,
+            self.config_entry.data.get(CONF_HISTORY_DAYS, DEFAULT_HISTORY_DAYS),
+        )
+        try:
+            parsed_days = int(days)
+        except (TypeError, ValueError):
+            parsed_days = DEFAULT_HISTORY_DAYS
+        return min(MAX_HISTORY_DAYS, max(MIN_HISTORY_DAYS, parsed_days))
+
     async def _async_update_data(self) -> dict[str, RevenueCatSensorMetric]:
         """Fetch data from RevenueCat."""
         try:
@@ -144,6 +164,30 @@ class RevenueCatMetricsCoordinator(
                     revenue_type=self.revenue_type,
                 )
                 data[chart_metric.key] = chart_metric
+
+            history_updated_at = datetime.now(UTC).isoformat()
+            try:
+                history_payload = await self.api.async_get_mrr_daily_history(
+                    self.project_id,
+                    self.currency,
+                    self.revenue_type,
+                    days=self.history_days,
+                )
+                history_metric = parse_mrr_daily_history(
+                    history_payload,
+                    project_id=self.project_id,
+                    currency=self.currency,
+                    revenue_type=self.revenue_type,
+                )
+            except RevenueCatError as err:
+                _LOGGER.warning("RevenueCat MRR daily history fetch failed: %s", err)
+                history_metric = unavailable_mrr_daily_history(
+                    project_id=self.project_id,
+                    currency=self.currency,
+                    revenue_type=self.revenue_type,
+                    updated_at=history_updated_at,
+                )
+            data[MRR_DAILY_HISTORY_SENSOR_KEY] = history_metric
 
             return data
         except RevenueCatAuthError as err:

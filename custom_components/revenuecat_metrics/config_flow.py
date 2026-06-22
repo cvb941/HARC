@@ -18,14 +18,18 @@ from .const import (
     CONF_API_KEY,
     CONF_CURRENCY,
     CONF_ENABLED_CHARTS,
+    CONF_HISTORY_DAYS,
     CONF_PROJECT_ID,
     CONF_REVENUE_TYPE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_CURRENCY,
     DEFAULT_ENABLED_CHARTS,
+    DEFAULT_HISTORY_DAYS,
     DEFAULT_REVENUE_TYPE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DOMAIN,
+    MAX_HISTORY_DAYS,
+    MIN_HISTORY_DAYS,
     MIN_UPDATE_INTERVAL_MINUTES,
     REVENUE_TYPES,
     SUPPORTED_CHARTS,
@@ -76,6 +80,7 @@ class RevenueCatMetricsConfigFlow(
                         CONF_REVENUE_TYPE: user_input[CONF_REVENUE_TYPE],
                         CONF_UPDATE_INTERVAL: user_input[CONF_UPDATE_INTERVAL],
                         CONF_ENABLED_CHARTS: list(DEFAULT_ENABLED_CHARTS),
+                        CONF_HISTORY_DAYS: user_input[CONF_HISTORY_DAYS],
                     },
                 )
 
@@ -131,8 +136,11 @@ class RevenueCatMetricsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             interval = user_input[CONF_UPDATE_INTERVAL]
+            history_days = user_input[CONF_HISTORY_DAYS]
             if interval < MIN_UPDATE_INTERVAL_MINUTES:
                 errors[CONF_UPDATE_INTERVAL] = "interval_too_low"
+            elif not MIN_HISTORY_DAYS <= history_days <= MAX_HISTORY_DAYS:
+                errors[CONF_HISTORY_DAYS] = "history_days_out_of_range"
             else:
                 user_input[CONF_CURRENCY] = user_input[CONF_CURRENCY].upper()
                 return self.async_create_entry(title="", data=user_input)
@@ -190,6 +198,10 @@ def _user_schema() -> vol.Schema:
                 CONF_UPDATE_INTERVAL,
                 default=DEFAULT_UPDATE_INTERVAL_MINUTES,
             ): vol.All(vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL_MINUTES)),
+            vol.Required(CONF_HISTORY_DAYS, default=DEFAULT_HISTORY_DAYS): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_HISTORY_DAYS, max=MAX_HISTORY_DAYS),
+            ),
         }
     )
 
@@ -239,6 +251,16 @@ def _options_schema(config_entry: config_entries.ConfigEntry) -> vol.Schema:
                     data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_MINUTES),
                 ),
             ): vol.All(vol.Coerce(int), vol.Range(min=MIN_UPDATE_INTERVAL_MINUTES)),
+            vol.Required(
+                CONF_HISTORY_DAYS,
+                default=options.get(
+                    CONF_HISTORY_DAYS,
+                    data.get(CONF_HISTORY_DAYS, DEFAULT_HISTORY_DAYS),
+                ),
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_HISTORY_DAYS, max=MAX_HISTORY_DAYS),
+            ),
             vol.Required(CONF_ENABLED_CHARTS, default=list(enabled_charts)): selector(
                 {
                     "select": {

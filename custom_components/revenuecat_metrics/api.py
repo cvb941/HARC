@@ -16,18 +16,24 @@ from .const import (
     API_TIMEOUT_SECONDS,
     ATTR_CHART_ID,
     ATTR_CURRENCY,
+    ATTR_DATES,
+    ATTR_DAYS,
     ATTR_LAST_UPDATED_FROM_REVENUECAT,
     ATTR_PERIOD_END,
     ATTR_PERIOD_START,
     ATTR_PROJECT_ID,
     ATTR_REVENUE_TYPE,
     ATTR_SOURCE,
+    ATTR_UPDATED_AT,
+    ATTR_VALUES,
     CHART_DISPLAY_NAMES,
     CHART_LOOKBACK_DAYS,
     CHART_SENSOR_KEYS,
     CONF_REVENUE_TYPE,
     DEFAULT_CURRENCY,
+    DEFAULT_HISTORY_DAYS,
     MONETARY_CHARTS,
+    MRR_DAILY_HISTORY_SENSOR_KEY,
     OVERVIEW_SENSOR_PREFIX,
     PERCENTAGE_CHARTS,
     REVENUE_TYPE_CHARTS,
@@ -54,6 +60,11 @@ class RevenueCatSensorMetric:
     period_end: str | None = None
     last_updated_from_revenuecat: str | None = None
     summary: dict[str, Any] = field(default_factory=dict)
+    available: bool = True
+    history_values: tuple[float | int, ...] | None = None
+    history_dates: tuple[str, ...] | None = None
+    days: int | None = None
+    updated_at: str | None = None
 
     @property
     def native_unit(self) -> str | None:
@@ -85,6 +96,14 @@ class RevenueCatSensorMetric:
             attrs[ATTR_LAST_UPDATED_FROM_REVENUECAT] = self.last_updated_from_revenuecat
         if self.summary:
             attrs["summary"] = self.summary
+        if self.history_values is not None:
+            attrs[ATTR_VALUES] = list(self.history_values)
+            attrs[ATTR_DATES] = list(self.history_dates or ())
+            attrs[ATTR_DAYS] = self.days if self.days is not None else len(
+                self.history_values
+            )
+        if self.updated_at is not None:
+            attrs[ATTR_UPDATED_AT] = self.updated_at
         return attrs
 
 
@@ -198,6 +217,32 @@ class RevenueCatApi:
         return await self._request(
             f"/projects/{project_id}/charts/{chart_name}",
             params=params,
+        )
+
+    async def async_get_mrr_daily_history(
+        self,
+        project_id: str,
+        currency: str,
+        revenue_type: str,
+        *,
+        days: int = DEFAULT_HISTORY_DAYS,
+        today: date | None = None,
+    ) -> dict[str, Any]:
+        """Fetch the canonical daily MRR chart series."""
+        end_date = today or datetime.now(UTC).date()
+        start_date = end_date - timedelta(days=days - 1)
+        return await self._request(
+            f"/projects/{project_id}/charts/mrr",
+            params={
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "currency": currency,
+                "resolution": "day",
+                "selectors": json.dumps(
+                    {CONF_REVENUE_TYPE: revenue_type},
+                    separators=(",", ":"),
+                ),
+            },
         )
 
     async def _request(
@@ -369,6 +414,72 @@ def parse_chart_metric(
     )
 
 
+def parse_mrr_daily_history(
+    payload: dict[str, Any],
+    *,
+    project_id: str,
+    currency: str,
+    revenue_type: str,
+) -> RevenueCatSensorMetric:
+    """Parse daily MRR history from RevenueCat chart data."""
+    if payload.get("object") != "chart_data":
+        raise RevenueCatPayloadError("mrr history payload has unexpected object type")
+
+    points = _daily_history_points("mrr", payload)
+    chart_currency = payload.get("yaxis_currency")
+    metric_currency = str(chart_currency) if chart_currency else currency
+    last_computed_at = _millis_to_iso(payload.get("last_computed_at"))
+    updated_at = last_computed_at or datetime.now(UTC).isoformat()
+    dates = tuple(point_date for point_date, _value in points)
+    values = tuple(value for _point_date, value in points)
+
+    return RevenueCatSensorMetric(
+        key=MRR_DAILY_HISTORY_SENSOR_KEY,
+        name="MRR Daily History",
+        value=values[-1] if values else None,
+        metric_kind="monetary",
+        project_id=project_id,
+        source="chart_history",
+        chart_id="mrr",
+        currency=metric_currency,
+        revenue_type=revenue_type,
+        period_start=dates[0] if dates else _date_from_period(payload.get("start_date")),
+        period_end=dates[-1] if dates else _date_from_period(payload.get("end_date")),
+        last_updated_from_revenuecat=last_computed_at,
+        available=bool(values),
+        history_values=values,
+        history_dates=dates,
+        days=len(values),
+        updated_at=updated_at,
+    )
+
+
+def unavailable_mrr_daily_history(
+    *,
+    project_id: str,
+    currency: str,
+    revenue_type: str,
+    updated_at: str | None = None,
+) -> RevenueCatSensorMetric:
+    """Return a fail-closed MRR history metric."""
+    return RevenueCatSensorMetric(
+        key=MRR_DAILY_HISTORY_SENSOR_KEY,
+        name="MRR Daily History",
+        value=None,
+        metric_kind="monetary",
+        project_id=project_id,
+        source="chart_history",
+        chart_id="mrr",
+        currency=currency,
+        revenue_type=revenue_type,
+        available=False,
+        history_values=(),
+        history_dates=(),
+        days=0,
+        updated_at=updated_at or datetime.now(UTC).isoformat(),
+    )
+
+
 def _latest_value_from_chart(
     chart_name: str,
     payload: dict[str, Any],
@@ -396,6 +507,47 @@ def _latest_value_from_chart(
         _millis_to_iso(payload.get("start_date")),
         _millis_to_iso(payload.get("end_date")),
     )
+
+
+def _daily_history_points(
+    chart_name: str,
+    payload: dict[str, Any],
+) -> list[tuple[str, float | int]]:
+    raw_values = payload.get("values")
+    if not isinstance(raw_values, list):
+        raise RevenueCatPayloadError(f"{chart_name} history values are not a list")
+
+    points: list[tuple[str, float | int]] = []
+    for index, point in enumerate(raw_values):
+        parsed = _daily_history_point(chart_name, point, payload, index)
+        if parsed is not None:
+            points.append(parsed)
+
+    return sorted(points, key=lambda item: item[0])
+
+
+def _daily_history_point(
+    chart_name: str,
+    point: Any,
+    payload: dict[str, Any],
+    index: int,
+) -> tuple[str, float | int] | None:
+    parsed = _value_from_point(chart_name, point, payload.get("measures"))
+    if parsed is None:
+        return None
+
+    value, period_start, _period_end = parsed
+    point_date = _date_from_period(period_start) or _date_from_index(payload, index)
+    if point_date is None:
+        raise RevenueCatPayloadError(f"{chart_name} history point is missing a date")
+    return point_date, value
+
+
+def _date_from_index(payload: dict[str, Any], index: int) -> str | None:
+    start = _date_from_period(payload.get("start_date"))
+    if start is None:
+        return None
+    return (date.fromisoformat(start) + timedelta(days=index)).isoformat()
 
 
 def _value_from_point(
@@ -563,6 +715,24 @@ def _period_value(value: Any) -> str | None:
         return value
     if _is_number(value) and _looks_like_timestamp(value):
         return _millis_or_seconds_to_iso(value)
+    return None
+
+
+def _date_from_period(value: Any) -> str | None:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, str):
+        if len(value) >= 10 and value[4] == "-" and value[7] == "-":
+            return value[:10]
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            return None
+    if _is_number(value) and _looks_like_timestamp(value):
+        divisor = 1000 if abs(value) > 10_000_000_000 else 1
+        return datetime.fromtimestamp(value / divisor, UTC).date().isoformat()
     return None
 
 

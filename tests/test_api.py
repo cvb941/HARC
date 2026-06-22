@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from custom_components.revenuecat_metrics.api import (
     RevenueCatApi,
     RevenueCatAuthError,
     RevenueCatRateLimitError,
+    parse_mrr_daily_history,
     parse_chart_metric,
     parse_overview_metrics,
     parse_revenue_metric,
@@ -68,6 +71,66 @@ def test_parse_revenue_metric(load_fixture):
     assert metric.attributes["revenue_type"] == "proceeds"
 
 
+def test_parse_mrr_daily_history_orders_attributes(load_fixture):
+    metric = parse_mrr_daily_history(
+        load_fixture("chart_mrr_history.json"),
+        project_id="proj_test",
+        currency="USD",
+        revenue_type="proceeds",
+    )
+
+    assert metric.key == "mrr_daily_history"
+    assert metric.value == 1010
+    assert metric.available is True
+    assert metric.native_unit == "EUR"
+    assert metric.attributes["currency"] == "EUR"
+    assert metric.attributes["values"] == [980, 995, 1010]
+    assert metric.attributes["dates"] == [
+        "2026-06-17",
+        "2026-06-18",
+        "2026-06-19",
+    ]
+    assert metric.attributes["days"] == 3
+    assert metric.attributes["updated_at"] == "2026-06-19T10:00:00+00:00"
+
+
+def test_parse_mrr_daily_history_empty_is_unavailable(load_fixture):
+    metric = parse_mrr_daily_history(
+        load_fixture("chart_mrr_history_empty.json"),
+        project_id="proj_test",
+        currency="EUR",
+        revenue_type="proceeds",
+    )
+
+    assert metric.value is None
+    assert metric.available is False
+    assert metric.attributes["values"] == []
+    assert metric.attributes["dates"] == []
+    assert metric.attributes["days"] == 0
+    assert metric.attributes["currency"] == "EUR"
+
+
+@pytest.mark.asyncio
+async def test_mrr_daily_history_request_uses_daily_resolution_and_days():
+    session = _FakeSession(_FakeResponse(200, {"object": "chart_data"}))
+    api = RevenueCatApi(session, "secret")
+
+    await api.async_get_mrr_daily_history(
+        "proj_test",
+        "EUR",
+        "proceeds",
+        days=14,
+        today=date(2026, 6, 22),
+    )
+
+    request = session.requests[0]
+    assert request["params"]["start_date"] == "2026-06-09"
+    assert request["params"]["end_date"] == "2026-06-22"
+    assert request["params"]["currency"] == "EUR"
+    assert request["params"]["resolution"] == "day"
+    assert request["params"]["selectors"] == '{"revenue_type":"proceeds"}'
+
+
 @pytest.mark.asyncio
 async def test_auth_failure_raises_auth_error():
     api = RevenueCatApi(
@@ -100,8 +163,10 @@ async def test_rate_limit_includes_retry_after():
 class _FakeSession:
     def __init__(self, response: _FakeResponse) -> None:
         self.response = response
+        self.requests = []
 
     def get(self, *args, **kwargs):
+        self.requests.append(kwargs)
         return self.response
 
 

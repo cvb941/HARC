@@ -69,6 +69,7 @@ The config flow asks for:
 - Currency, default `EUR`
 - Revenue type, default `revenue`
 - Update interval, default 60 minutes, minimum 15 minutes
+- MRR daily history window, default 14 days
 
 Options can later change:
 
@@ -76,12 +77,14 @@ Options can later change:
 - Revenue type: `revenue`, `revenue_net_of_taxes`, or `proceeds`
 - Update interval
 - Enabled chart set
+- MRR daily history window, 1 to 90 days
 
 ## Example sensors
 
 Entity IDs depend on Home Assistant's entity registry, but the default names produce sensors such as:
 
 - `sensor.revenuecat_mrr`
+- `sensor.revenuecat_mrr_daily_history`
 - `sensor.revenuecat_arr`
 - `sensor.revenuecat_revenue_28d`
 - `sensor.revenuecat_active_subscriptions`
@@ -93,23 +96,34 @@ Entity IDs depend on Home Assistant's entity registry, but the default names pro
 
 Attributes include the project ID, chart ID where applicable, currency, revenue type, period boundaries, and RevenueCat's last computed timestamp.
 
+The MRR daily history sensor uses RevenueCat's v2 `mrr` chart endpoint with daily resolution. Its state is the newest MRR point when available. Its chart attributes are designed for compact consumers such as AWTRIX:
+
+- `values`: numeric daily MRR values, oldest to newest
+- `dates`: matching ISO dates, oldest to newest
+- `currency`: selected RevenueCat currency
+- `days`: number of returned points
+- `updated_at`: ISO timestamp for the published series
+
 ## AWTRIX automation example
 
-This integration only exposes sensors. To show MRR on AWTRIX, use a Home Assistant automation against your AWTRIX entity, for example:
+This integration only exposes sensors. To show MRR on AWTRIX, use a Home Assistant automation against your AWTRIX entity. Read the history directly from the entity attributes and pass `mrr_values` to the chart field your AWTRIX app expects:
 
 ```yaml
 alias: AWTRIX RevenueCat MRR
 mode: single
 triggers:
   - trigger: state
-    entity_id: sensor.revenuecat_mrr
+    entity_id: sensor.revenuecat_mrr_daily_history
+variables:
+  mrr_values: "{{ state_attr('sensor.revenuecat_mrr_daily_history', 'values') or [] }}"
+  mrr_currency: "{{ state_attr('sensor.revenuecat_mrr_daily_history', 'currency') or '' }}"
 actions:
   - action: awtrix.custom_app
     target:
       entity_id: light.awtrix
     data:
       name: revenuecat_mrr
-      text: "MRR {{ states('sensor.revenuecat_mrr') }} {{ state_attr('sensor.revenuecat_mrr', 'currency') }}"
+      text: "MRR {{ states('sensor.revenuecat_mrr_daily_history') }} {{ mrr_currency }}"
       icon: "1234"
 ```
 

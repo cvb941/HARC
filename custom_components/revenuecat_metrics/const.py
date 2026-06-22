@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "revenuecat_metrics"
 NAME = "RevenueCat Metrics"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 API_BASE_URL = "https://api.revenuecat.com/v2"
 API_TIMEOUT_SECONDS = 30
@@ -15,11 +15,15 @@ CONF_CURRENCY = "currency"
 CONF_REVENUE_TYPE = "revenue_type"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_ENABLED_CHARTS = "enabled_charts"
+CONF_HISTORY_DAYS = "history_days"
 
 DEFAULT_CURRENCY = "EUR"
 DEFAULT_REVENUE_TYPE = "revenue"
 DEFAULT_UPDATE_INTERVAL_MINUTES = 60
+DEFAULT_HISTORY_DAYS = 14
 MIN_UPDATE_INTERVAL_MINUTES = 15
+MIN_HISTORY_DAYS = 1
+MAX_HISTORY_DAYS = 90
 CHART_LOOKBACK_DAYS = 90
 REVENUE_WINDOW_DAYS = 28
 
@@ -96,6 +100,8 @@ CHART_SENSOR_KEYS = {
     "trials_new": "new_trials",
 }
 
+MRR_DAILY_HISTORY_SENSOR_KEY = "mrr_daily_history"
+
 CHART_DISPLAY_NAMES = {
     "actives": "Active Subscriptions",
     "actives_movement": "Active Subscriptions Movement",
@@ -133,3 +139,7 @@ ATTR_PERIOD_START = "period_start"
 ATTR_PERIOD_END = "period_end"
 ATTR_LAST_UPDATED_FROM_REVENUECAT = "last_updated_from_revenuecat"
 ATTR_SOURCE = "source"
+ATTR_VALUES = "values"
+ATTR_DATES = "dates"
+ATTR_DAYS = "days"
+ATTR_UPDATED_AT = "updated_at"

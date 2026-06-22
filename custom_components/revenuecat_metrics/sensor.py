@@ -80,6 +80,11 @@ class RevenueCatMetricSensor(
         return self._metric.value
 
     @property
+    def available(self) -> bool:
+        """Return whether this specific metric is available."""
+        return super().available and self._metric.available
+
+    @property
     def extra_state_attributes(self) -> dict[str, object]:
         """Return compact state attributes."""
         return self._metric.attributes

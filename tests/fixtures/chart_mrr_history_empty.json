@@ -1,0 +1,25 @@
+{
+  "object": "chart_data",
+  "category": "revenue",
+  "display_type": "line",
+  "display_name": "MRR",
+  "description": "Monthly recurring revenue",
+  "documentation_link": null,
+  "last_computed_at": 1781863200000,
+  "start_date": 1781690400000,
+  "end_date": 1781863200000,
+  "yaxis_currency": "EUR",
+  "filtering_allowed": true,
+  "segmenting_allowed": true,
+  "resolution": "day",
+  "values": [],
+  "summary": {},
+  "yaxis": "$",
+  "segments": null,
+  "segments_limit": null,
+  "measures": null,
+  "user_selectors": {
+    "revenue_type": "proceeds"
+  },
+  "unsupported_params": null
+}

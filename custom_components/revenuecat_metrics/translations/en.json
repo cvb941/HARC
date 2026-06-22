@@ -20,6 +20,7 @@
         "data": {
           "api_key": "RevenueCat API v2 secret key",
           "currency": "Currency",
+          "history_days": "MRR daily history days",
           "project_id": "Project ID",
           "revenue_type": "Revenue type",
           "update_interval": "Update interval in minutes"
@@ -31,6 +32,7 @@
   },
   "options": {
     "error": {
+      "history_days_out_of_range": "MRR daily history days must be between 1 and 90.",
       "interval_too_low": "The update interval must be at least 15 minutes."
     },
     "step": {
@@ -38,6 +40,7 @@
         "data": {
           "currency": "Currency",
           "enabled_charts": "Enabled charts",
+          "history_days": "MRR daily history days",
           "revenue_type": "Revenue type",
           "update_interval": "Update interval in minutes"
         },
@@ -46,4 +49,3 @@
     }
   }
 }
-
